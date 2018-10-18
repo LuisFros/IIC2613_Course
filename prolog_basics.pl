@@ -1,8 +1,8 @@
 raton(jerry).
+raton(ratatouie).
 perro(tribilin).
 gato(felix).
 gato(tom).
-raton(ratatouie).
 
 animal(X) :- perro(X).
 animal(X) :- gato(X).
@@ -34,20 +34,21 @@ enesimo(X, 0, [X|_]).
 
 enesimo(X,N,L):-
     L=[_|Lp],
-    Np is N-1.
-    enesimo(X,Np,Lp),
+    Np is N-1,
+    enesimo(X,Np,Lp).
 
 
-# my_last(X,Y):- Y=[Head|Tail],
-# my_last(X,[Head|Tail]):-
-#     my_last(X,[Tail]).
+
+
 
 
 my_last(X,Y):- Y=[A|B], A=X, B=[].
-my_last(X,Y):-Y=[C|D], my_last(X,D).
+my_last(X,Y):-
+    Y=[_|D],
+    my_last(X,D).
 
-last_but(X,L):- L=[Element|[Last]],X=L.
-last_but(X,L):- L=[Head|Tail] ,last_but(X,[Tail]).
+last_but(X,L):- 
+    L=[_|Tail] ,last_but(X,[Tail]).
 
 
 
@@ -63,21 +64,51 @@ element_at(X,[_|L],K) :- K > 1, K1 is K - 1, element_at(X,L,K1).
 
 number_elements(L,N):- L=[],N=0.
 
-number_elements(L,N):- L=[Head|Tail],number_elements(Tail,Np),N is Np+1.
+number_elements(L,N):-
+    L=[_|Tail],number_elements(Tail,Np),N is Np+1.
 
 
 lenght_tail(L,N):-lenght_tail(L,0,N).
 lenght_tail([],N,N).
-lenght_tail(L,N0,N):L=[H|],N1 is N0+1,lenght_tail(Tail,N1,N).
+lenght_tail(L,N0,N):-
+    L=[_|Tail],
+    N1 is N0+1,
+    lenght_tail(Tail,N1,N).
 
 length_acc(L,N):-length_acc(L,0,N).
 length_acc([],N,N).
-length_acc(L,N0,N):L=[H|T],-N1 is N0+1,length_acc(T,N1,N).
+length_acc(L,N0,N):-
+    L=[_|T], %[Head|Tail]
+    -N1 is N0+1,
+    length_acc(T,N1,N).
 
-length_acc2(L,N):-length_acc2(L,0,N).
+length_acc2(L,N):-
+    length_acc2(L,0,N).
 length_acc2([],N,N).
-length_acc2([H|T],N0,N):-N1 is N0+1,length_acc2(T,N1,N).
+length_acc2([_|T],N0,N):-
+    N1 is N0+1,
+    length_acc2(T,N1,N).
 
-reverse_list(X,Y):-reverse_list(X,[],Y).
-reverse_list([],Y,Y).
-reverse_list([H|T],Y0,Y):-reverse_list(T,[H|Y0],Y).
+% reverse_list(X,Y):-
+%     reverse_list(X,[],Y).
+% reverse_list([],Y,Y).
+% reverse_list([H|T],Y0,Y):-
+%     reverse_list(T,[H|Y0],Y).
+
+reverse_lista(L,R):-
+    reverse_lista(L,[],R).
+reverse_lista([],L,L).
+reverse_lista(L,RL,R):-
+    L=[Head|Tail],
+    reverse_lista(Tail,[Head|RL],R).
+
+
+fibo(0, 1) :- !.
+fibo(1, 1) :- !.
+fibo(N, F) :-
+        N > 1,
+        N1 is N-1,
+        N2 is N-2,
+        fibo(N1, F1),
+        fibo(N2, F2),
+        F is F1+F2.

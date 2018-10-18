@@ -1,5 +1,5 @@
 poda_par(L1,L2):-poda_par(L1,1,L2).
-poda_par([],N,L2).
+poda_par([],_,_).
 poda_par([h|T],N,L2):-
     \+ N mod 2 =:= 0,
     N is N+1,

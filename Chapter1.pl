@@ -13,15 +13,10 @@ connected(tottenham_court_road,leicester_square,northern).
 connected(leicester_square,charing_cross,northern).
 /*This is the end of inheritance.*/
 
-reachable(X,Y):-connected(X,Y,L).
-reachable(X,Y):-connected(X,Z,L),reachable(Z,Y).
+reachable(X,Y):-connected(X,Y,_).
+reachable(X,Y):-connected(X,Z,_),reachable(Z,Y).
 
 
 % reachable(Z,Y):-connected(Z,W,L),reachable(W,Y)
 
 
-list2([]).
-list2([X|R]):-list2(R).
-# list2([X|L]).
-% even list
-list2(L):-
