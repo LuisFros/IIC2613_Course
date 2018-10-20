@@ -1,4 +1,9 @@
 %%%%% First, the a blocksworld
+:- discontiguous holds/2,is_negative_effect/2,is_positive_effect/2,poss/2,block/1.
+% :- consult('./astar.pl').
+:- include('astar.pl').
+% :- consult(astar).
+
 
 %% Object Declaration (problem-specific)
 block(B) :- member(B,[a,b,c,d]).
@@ -11,7 +16,7 @@ holds(F,s0) :- member(F,[on(a,b),on(b,c),on(c,table), on(d,table)]).
 poss(move(X,Y,Z),S) :-
 	block(X), % X debe ser un bloque, se puede obviar en este caso
     holds(on(X,Y),S), % En S el bloque X debe estar sobre Y
-    (Z=table; % Z es la mesa, por lo que siempre esta disponible.
+    (Z=table; % Z es la mesa, por lo que siempre esta disponible. OR
     	block(Z),\+ holds(on(_,Z),S)), %Z es un bloque, y no hay nada arriba de Z
     X\=Z,Y\=Z,  %Diferenciar variables
     \+ holds(on(_,X),S). %No hay nada sobre X.
@@ -37,6 +42,7 @@ legal(do(A,S)) :-
     legal(S),
     poss(A,S).
 
+
 % If you want to generate a plan use a query like
 % legal(S),holds(on(b,a),S).
 
@@ -52,3 +58,4 @@ astar_heuristic1(State,N) :-
     goal_condition(GState),
     findall(X,(member(on(Block,Gpos),GState), member(on(Block,Pos),State), Gpos\=Pos),List), %La lista van a ser todos los X que cumple Condicion
     length(List,N).
+

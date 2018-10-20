@@ -1,6 +1,5 @@
 :- dynamic astar_expansions/1.
-:- multifile holds/2.
-
+:- multifile(holds/2).
 %% A version of holds that will be used by A*
 holds(F,List) :- is_list(List),member(F,List).
 
