@@ -1,5 +1,6 @@
-:- dynamic astar_expansions/1.
-:- multifile(holds/2).
+ :- dynamic astar_expansions/1.
+:- multifile holds/2.
+
 %% A version of holds that will be used by A*
 holds(F,List) :- is_list(List),member(F,List).
 
@@ -34,7 +35,7 @@ astar_print_stats :-
     writef("A* expansions=%q",[Expansions]),nl.
 
 astar_clean_memory :-
-    forall(recorded(K,astar_node(_,_,_,_,_),Ref),erase(Ref)),
+    forall(recorded(_,astar_node(_,_,_,_,_),Ref),erase(Ref)),
     retractall(astar_expansions(_)).
 
 astar(Plan) :-

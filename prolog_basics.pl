@@ -42,7 +42,8 @@ enesimo(X,N,L):-
 
 
 
-my_last(X,Y):- Y=[A|B], A=X, B=[].
+my_last(X,Y):- 
+    Y=[A|B], A=X, B=[].
 my_last(X,Y):-
     Y=[_|D],
     my_last(X,D).
@@ -51,6 +52,14 @@ last_but(X,L):-
     L=[_|Tail] ,last_but(X,[Tail]).
 
 
+%% Caso base
+hay_sobre(Contenedor,S):-
+    \+holds(sobre(_,Contenedor),S).
+hay_sobre(Contenedor,S):-
+    holds(sobre(_,Contenedor)),
+    findall(X,(member(sobre(X,Contenedor))),Lista),
+    Lista=[Head|_],
+    hay_sobre(Head,S).
 
 kth_element(X,L,K):-
     K=0,L=[X|_].
