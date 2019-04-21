@@ -6,7 +6,7 @@
 
 %% Object Declaration (problem-specific)
 
-container(C) :- member(C,[c1,c2,c3,c4,c5,c6]).
+container(C) :- member(C,[c1,c2,c3,c4,c5,c6,c7]).
 paleta(P) :- member(P,[p11,p21,p12,p22,p13]).
 superficie(S) :- container(S).
 superficie(S) :- paleta(S).
@@ -23,8 +23,8 @@ camion(Cam) :- member(Cam,[cam1]).
 holds(F,s0) :- member(F,[en(cam1,cargo1),
 
                          en(g1,cargo1),en(g2,cargo2),en(g3,cargo3),
-                         disponible(g1),disponible(g2),
-
+                         disponible(g1),disponible(g2),disponible(g3),
+                        
                          en(p11,cargo1),en(p21,cargo1),
                          en(c1,cargo1),en(c2,cargo1),
                          sobre(c1,p11),sobre(c2,c1),
@@ -162,59 +162,41 @@ legal(do(A,S)) :-
 
 goal_condition([en(c1,cargo2),en(c5,cargo1)]).
 
-astar_heuristic(State,N) :- (astar_heuristic2(State,N);astar_heuristic0(State,N)).
-    % format("H is ~q \n",[N]).
 
-astar_heuristic0(_,0).
+astar_heuristic(State,M) :- 
+    (astar_heuristicGlobalR(State,N);astar_heuristic0(State,N)),M is N.
 
-% el_sobre(X,Y,S):-
-%     holds(sobre(X,Y),S).
-% el_sobre(X,Y,S):-
-%     holds(sobre(Z,Y),S),
-%     el_sobre(Z,Y,S).
+astar_heuristic0(_,N):-
+    N is 0.
 
-% hay_sobre([],S,N):-N is 0.
-%     % \+holds(sobre(_,Contenedor),S).
-% hay_sobre(Contenedor,S,N):-
-%     holds(sobre(_,Contenedor),S),
-%     findall(X,(member(sobre(X,Contenedor),S)),Lista),
-%     Lista=[H|T],
-%     el_sobre(H,Contenedor,S),
-%     % (hay_sobre(Lista,S,N);
-%     % Lista=[Head|T],hay_sobre(Head,S,N)),
-%     N is N +1.    
-
+cuantos_sobre(Superficie,State,R):-
+    cuantos_sobre(Superficie,State,0,R).
+cuantos_sobre(0,_,Counter,Result):-
+    Result is Counter-1.
+cuantos_sobre(Superficie,State,Counter,Result):-
+    Counter0 is Counter +1,
+    findall(X,(holds(sobre(X,Superficie),State)),ContenedoresSobre),
+    length(ContenedoresSobre,Largo),
+    cuantos_sobre(Largo,State,Counter0,Result).
 
 function_s(Superficie,M,S):-
     function_s(Superficie,0,M,S).
-
 function_s(Superficie,M,M,S):-
     \+holds(sobre(_,Superficie),S).
 function_s(Superficie,M0,N,S):-
-    % format('function 3 Superficie ~q \n',[Superficie]),
-    % holds(sobre(_,Superficie),S),
     findall(X,(holds(sobre(X,Superficie),S)),Lista),
-    % findall(X,(holds(sobre(_,X),S)),Lista2),
-    % findall(X,(!),ListaEstados),
-    % \+ list_empty(Lista),
     length(Lista,Len),
     Len >0,
-    % atomic_list_concat(Lista, ',', Atom), atom_string(Atom, String),
-    % format('List is ~w \n',[String]),
-    % atomic_list_concat(Lista2, ',', Atom2), atom_string(Atom, String2),
-    % format('Lista2  ~q \n',[String2]),
     M1 is M0 + 1,
     Lista=[Head|_],
-    % format('function 3 Head ~q \n',[Head]),
     function_s(Head,M1,N,S).
 
 
-% dosomething(List,S,R):-
-%     dosomething(List,0,S,R).
 dosomething(List,S,R):-
+    % M is 0,
     dosomething(List,_,S,R).
 dosomething([],M,_,M).
-dosomething([H|T],M,S,R) :- function_s(H,M,S),dosomething(T,M,S,R).
+dosomething([H|T],M,S,R) :- cuantos_sobre(H,S,M),dosomething(T,M,S,R).
 
 
 
@@ -225,45 +207,62 @@ astar_heuristic1(State,N) :-
     findall(G,(grua(G),member(levantando(G,Contenedor),State),member(en(G,L),State),member(X,List),member(en(X,L),State),Contenedor\=X),GruasUsadas),
     % Numero de gruas que estan levantando un elemento distinto del objetivo
     length(GruasUsadas,Gruas),
-    findall(Camion,(camion(Camion),member(en(Camion,L),State),member(X,List),member(en(X,L),State),member(en(X,ObjL),GState),ObjL\=L),ElementosCamion),
+    findall(Camion,(camion(Camion),member(en(Camion,L),State),member(X,List),member(en(X,ObjL),GState),ObjL\=L),ElementosCamion),
     % Numero de camiones que estan en un cargo distinto al de los contenedroes objetivos,
     length(ElementosCamion,Camiones),
 
-    % findall(X,(container(C),member(en(C,Gpos),GState), member(en(C,Pos),State), Gpos\=Pos),List), %La lista van a ser todos los X que cumple Condicion
-    length(List,M), % M es el numero de en() que no estan en orden deseado
-    M>0, % Si no hay ninguno, se usa heuristica 0
-    % findall(X,(member(sobre(_,X),State)),Lista2),
-    % atomic_list_concat(Lista2, ',', Atom), atom_string(Atom, String2),
-    % format('Lista antes de dosomething  ~q \n',[String2]),
 
-    dosomething(List,State,R), 
+    % Gruas levantando obj
+    findall(G,(grua(G),member(levantando(G,X),State),member(en(G,L),State),member(en(X,GoalL),GState),GoalL\=L),GruasLevantandoObj),
+    length(GruasLevantandoObj,GruasObj),
+    length(List,M), % M es el numero de en() que no estan en orden deseado
+    % M>0, % Si no hay ninguno, se usa heuristica 0
+    % format('GruasObj is ~q \n',[GruasObj]),
+    GruasObj>0,
+    % dosomething(List,State,R), 
     % numero de containers arriba de los que no estan en objetivo
 
-    % findall(X,(container(X),member(sobre(X,C)),container(C),member(en(C,Gpos),GState), member(en(C,Pos),State), Gpos\=Pos),List)
-    % findall(Y,(member(en(Block,Pos),State)),List2),
-    % findall(Y,(holds(sobre(_,Gstate))))
     % format('M is ~q \n',[M]),
     % format('R is ~q \n',[R]),
-    % format('Gruas is ~q \n',[Gruas]),
+    % format('GruasObj is ~q \n',[GruasObj]),
+    % format('Gruas is ~q \n',[GruasObj]),
     % format('Camiones is ~q \n',[Camiones]),
 
-    N is 3*(M+R)+1*Gruas+1*Camiones.  % por lo menos 2 acciones para cada cambio de cargo
+    N is 4*GruasObj.  % por lo menos 4 acciones para objetivos que no estan en el mismo cargo
 
     % length(List2,Q),
 
 %%astar_heuristic1(State,N) :-
 
+astar_heuristic3(State,N):-
+    goal_condition(GState),
+    %% pimero camion esta en lugar de objetivo con objtivo
+    findall(C,(camion(Cam),member(dentro(C,Cam),State),member(en(Cam,L),State),member(en(C,L),GState)),CamionesBien),
+    length(CamionesBien,CamBien),
+    %% camion No esta en lugar de objetivo con objtivo
+    findall(C,(camion(Cam),member(dentro(C,Cam),State),member(en(Cam,L),State),member(en(C,GoalL),GState),GoalL\=L),CamionesMal),
+    %% Gruas que estan levantando objetos distintos de objetivo, donde el objetivo esta en camion en Pos objetivo
+    findall(G,(grua(G),member(en(G,L),State),member(X,CamionesBien),member(en(X,L),State),Contenedor\=X),GruasTotales),
+    findall(G,(grua(G),member(levantando(G,Contenedor),State),member(en(G,L),State),member(X,CamionesBien),member(en(X,L),State),Contenedor\=X),GruasUsadas),
+    length(GruasUsadas,GruasUs),
+    length(GruasTotales,GruasTot),
+    length(CamionesMal,CamMal),
+N is 2*CamBien+3*CamMal+(GruasTot-GruasUs)*2.% (Descargar y soltar )
+
+
+    %% segundo esta en otro lugar != del objetivo
 astar_heuristic2(State,N) :-
     goal_condition(GState),
     %numero de containers es posiciones errones
     findall(C,(container(C),member(en(C,Gpos),GState), member(en(C,Pos),State), Gpos\=Pos),List), %La lista van a ser todos los X que cumple Condicion
+    % 
     findall(G,(grua(G),member(levantando(G,Contenedor),State),member(en(G,L),State),member(X,List),member(en(X,L),State),Contenedor\=X),GruasUsadas),
     % Numero de gruas que estan levantando un elemento distinto del objetivo
     length(GruasUsadas,Gruas),
     findall(Camion,(camion(Camion),member(en(Camion,L),State),member(X,List),member(en(X,L),State),member(en(X,ObjL),GState),ObjL\=L),ElementosCamion),
     % Numero de camiones que estan en un cargo distinto al de los contenedroes objetivos,
     length(ElementosCamion,Camiones),
-
+    
     % findall(X,(container(C),member(en(C,Gpos),GState), member(en(C,Pos),State), Gpos\=Pos),List), %La lista van a ser todos los X que cumple Condicion
     length(List,M), % M es el numero de en() que no estan en orden deseado
     M>0, % Si no hay ninguno, se usa heuristica 0
@@ -277,15 +276,92 @@ astar_heuristic2(State,N) :-
     % findall(X,(container(X),member(sobre(X,C)),container(C),member(en(C,Gpos),GState), member(en(C,Pos),State), Gpos\=Pos),List)
     % findall(Y,(member(en(Block,Pos),State)),List2),
     % findall(Y,(holds(sobre(_,Gstate))))
-    % format('M is ~q \n',[M]),
+    % format('M is ~q \n',[M]),/
     % format('R is ~q \n',[R]),
     % format('Gruas is ~q \n',[Gruas]),
     % format('Camiones is ~q \n',[Camiones]),
-    N is 4*(M)+4*R+2*Gruas+1*Camiones. % por lo menos 2 acciones para cada cambio de cargo
+
+    % h=4*Numero de contenedores no en objetivo+ 4 * Numero de contenedores arriba de todos los M + 2* Gruas que estan levantando elementos != objetivo
+    N is (4*(M)+2*R+Gruas+2*Camiones). % por lo menos 2 acciones para cada cambio de cargo
 
     
 
-%%astar_heuristic3(State,N) :-
+astar_heuristicGlobal(State,N) :-
+    goal_condition(GState),
+    %numero de containers es posiciones errones
+     %% contenedores objetivo  
+    findall(C,(container(C),member(en(C,Gpos),GState)),ContObjetivo),
+    length(ContObjetivo,Z),
+    findall(C,(container(C),member(en(C,Pos),GState), member(en(C,Pos),State)),List), %La lista van a ser todos los C que estan en objetivo
+    % findall(C,(container(C),member(en(C,Pos),GState), member(en(C,GPos),State),Gpos\=Pos),ListR), %La lista van a ser todos los C que estan en objetivo    
+    findall(Q,(container(Q),member(en(Q,Gpos),GState), member(en(Q,Pos),State), Gpos\=Pos),ListR), %La lista van a ser todos los X que cumple Condicion
+
+    % Numero de gruas que estan levantando un elemento distinto del objetivo
+    findall(Camion,(camion(Camion),member(en(Camion,L),State),member(X,List),member(en(X,L),State),member(en(X,ObjL),GState),ObjL\=L),ElementosCamion),
+    % Numero de camiones que estan en un cargo distinto al de los contenedroes objetivos,
+    length(ElementosCamion,Camiones),
+    
+    %% H2
+    findall(C,(camion(Cam),member(dentro(C,Cam),State),member(en(Cam,L),State),member(en(C,L),GState)),CamionesBien),
+    length(CamionesBien,CamBien),
+    %% camion No esta en lugar de objetivo con objtivo
+    findall(C,(camion(Cam),member(dentro(C,Cam),State),member(en(Cam,L),State),member(en(C,GoalL),GState),GoalL\=L),CamionesMal),
+    %% Gruas que estan levantando objetos distintos de objetivo, donde el objetivo esta en camion en Pos objetivo
+    findall(G,(grua(G),member(en(G,L),State),member(X,CamionesBien),member(en(X,L),State),Contenedor\=X),GruasTotales),
+    findall(G,(grua(G),member(levantando(G,Contenedor),State),member(en(G,L),State),member(X,CamionesBien),member(en(X,L),State),Contenedor\=X),GruasUsadas),
+
+    length(GruasUsadas,GruasUs),
+    length(GruasTotales,GruasTot),
+    length(CamionesMal,CamMal),
+    % H3
+    findall(G,(grua(G),member(levantando(G,X),State),member(en(G,L),State),member(en(X,GoalL),GState),GoalL\=L),GruasLevantandoObj),
+    length(GruasLevantandoObj,GruasObj),
+    length(List,W), % M es el numero de en() que no estan en orden deseado
+
+    length(ListR,LargoListR),
+    format('List r is ~q \n',[LargoListR]),
+    M is Z-W, % Numero de contenendores que faltan 
+    format('M is ~q \n',[M]),
+    LargoListR>0,
+    M>0, % Si no hay ninguno, se usa heuristica 0
+
+    N is (4*M+Gruas).
 
 %%astar_heuristic4(State,N) :-
 
+astar_heuristicGlobalR(State,N) :-
+    goal_condition(GState),
+    %numero de containers es posiciones errones
+     %% contenedores objetivo  
+    findall(C,(container(C),member(en(C,Gpos),GState)),ContObjetivo),
+    length(ContObjetivo,Z),
+    findall(C,(container(C),member(en(C,Pos),GState), member(en(C,Pos),State)),List), %La lista van a ser todos los C que estan en objetivo
+    findall(Q,(container(Q),member(en(Q,Gpos),GState), member(en(Q,Pos),State), Gpos\=Pos),ListR), %La lista van a ser todos los X que cumple Condicion
+
+    % Numero de gruas que estan levantando un elemento distinto del objetivo
+    findall(Camion,(camion(Camion),member(en(Camion,L),State),member(X,List),member(en(X,L),State),member(en(X,ObjL),GState),ObjL\=L),ElementosCamion),
+    % Numero de camiones que estan en un cargo distinto al de los contenedroes objetivos,
+    length(ElementosCamion,Camiones),
+    
+    %% H2
+    %% pimero camion esta en lugar de objetivo con objtivo
+    findall(Cam,(camion(Cam),member(dentro(C,Cam),State),member(en(Cam,L),State),member(en(C,L),GState)),CamionesBien),
+    length(CamionesBien,CamBien),
+    %% camion No esta en lugar de objetivo con objtivo
+    findall(Cam,(camion(Cam),member(dentro(C,Cam),State),member(en(Cam,L),State),member(en(C,GoalL),GState),GoalL\=L),CamionesMal),
+    %% Gruas que estan levantando objetos distintos de objetivo, donde el objetivo esta en camion en Pos objetivo
+    findall(G,(grua(G),member(en(G,L),State),member(X,CamionesBien),member(en(X,L),State),Contenedor\=X),GruasTotales),
+    findall(G,(grua(G),member(levantando(G,Contenedor),State),member(en(G,L),State),member(X,CamionesBien),member(en(X,L),State),Contenedor\=X),GruasUsadas),
+
+    length(GruasUsadas,GruasUs),
+    length(GruasTotales,GruasTot),
+    length(CamionesMal,CamMal),
+   
+    findall(G,(grua(G),member(levantando(G,X),State),member(en(G,L),State),member(en(X,GoalL),GState),GoalL\=L),GruasLevantandoObj),
+    length(GruasLevantandoObj,GruasObj),
+    length(List,W), % M es el numero de en() que no estan en orden deseado
+
+  
+    M is Z-W, % Numero de contenendores que faltan 
+    
+    N is (2*M+CamBien+CamMal+2*GruasObj).

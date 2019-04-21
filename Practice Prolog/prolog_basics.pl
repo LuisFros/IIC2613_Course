@@ -121,3 +121,17 @@ fibo(N, F) :-
         fibo(N1, F1),
         fibo(N2, F2),
         F is F1+F2.
+
+
+
+nesimo(H,0,[H|_]).
+nesimo(X,N,L):-
+    M is N-1,
+    L=[_|T],
+    nesimo(X,M,T).
+
+
+misterio(0,[X|_],X).
+misterio(s(Z),[_|L],X):-
+    misterio(Z,L,X),format("Z is now: ~w\n", [Z]).
+
